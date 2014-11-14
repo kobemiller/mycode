@@ -1,0 +1,56 @@
+case结构
+    1、语法
+        case "字符串变量" in
+            值1）指令1 ...
+            ;;
+            值2）指令2...
+            ;;
+            *)  指令...
+            ;;
+        esac
+12:54:38
+老科 2014-10-21 12:54:38
+24、要掌握的linux系统标杆脚本
+    /etc/init.d/functions
+        /etc/rc.d/rc.sysinit
+            /etc/init.d/nfs
+                /etc/init.d/portmap
+                    /etc/init.d/httpd
+                    25、while语句
+                        while 条件
+                                do
+                                            语句
+                                                done
+                                                    until语句
+                                                        until 条件
+                                                            do
+                                                                        语句
+                                                                            done
+                                                                                bash ***.sh &   #脚本后台执行
+                                                                                    ctl+c           #停止执行当前脚本
+                                                                                        ctl+z           #暂停执行当前脚本
+                                                                                            bg              #把当前脚本放到后台执行
+                                                                                                fg              #当前脚本放到前台执行，如果有多个任务，可以fg加任务编号调出
+                                                                                                    jobs            #查看执行的脚本
+for循环语句
+for 变量名 in 变量取值列表
+    do
+        指令
+    done
+for((exp1;exp2;exp3))
+    do
+        指令
+    done
+
+如何优化linux系统
+1、精简安装包（最小化安装）
+2、配置国内高速yum源
+3、禁用开机不需要启动的服务
+4、优化系统内核参数/etc/sysctl.conf
+5、增加系统文件描述符、堆栈等配置
+6、禁止root远程登陆。修改ssh端口为特殊端口，禁止DNS，空密码
+7、有外网IP的机器要开启配置防火墙，仅对外开启需要提供服务的端口，配置或关闭SELINUX
+8、清除无用的默认系统账户或组（非必须）(添加运维帐号)
+9、锁定敏感文件（/etc/passwd）（非必须）
+10、配置服务器和互联网时间同步
+11、配置sudo对普通用户权限的精细控制

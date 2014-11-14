@@ -1,0 +1,8 @@
+os-release: CentOS Linux 7 (Core)
+kernel-release: Linux  3.10.0-123.el7.x86_64
+cpu info:  Pentium(R) Dual-Core  CPU      E5800  @ 3.20GHz
+cpu空闲率: 2%
+cpu负载: 0.01, 0.06, 0.17
+memory total: 3.7G
+memory used: 3.1G
+memory free: 619M
