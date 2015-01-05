@@ -11,6 +11,7 @@ public:
     {
         delete x;
         x = NULL;
+        std::cout << "***" << std::endl;
     }
     A(const A &a)
     {
