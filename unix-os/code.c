@@ -372,5 +372,366 @@ main()
             UBMAP->r[i+1] = 0;
         }
     printf("mem = %l\n", maxmem * 5 / 16);
-    //1577
+    printf("RESTRICTED RIGHTS\n\n");
+    printf("Use, duplication or disclosure is subject to\n");
+    printf("restrictions stated in contract with western\n");
+    printf("electric conpany, Inc\n");
+
+    maxmem = min(maxmem, MAMMEM);
+    mfree(swapmap, nswap, swplo);
+
+    //set up system process
+    proc[0].p_addr = *ka6;
+    proc[0].p_size = USIZE;
+    proc[0].p_stat = SRUN;
+    proc[0].p_flag =| SLOAD|SSYS;
+    u.u_procp = &proc[0];
+
+    //determine clock
+    UISA->r[7] = ka6[1];    //io segment
+    UISD->r[7] = 077406;
+    lks = CLOCK1;
+    if ( fuiword(lks) == -1 )
+    {
+        lks = CLOCK2;
+        if ( fuiword(lks) == -1 )
+            panic("no clock");
+    }
+    *lks = 0115;
+
+    //set up known i-nodes
+    cinit();
+    binit();
+    iinit();
+    rootdir = iset(rootdev, ROOTINO);
+    rootdir->i_flags =& ~ILOCK;
+    u.u_cdir = iset(rootdev, ROOTINO);
+    u.u_cdir->i_flag =& ~ILOCK;
+
+    //make init process enter scheduling loop with system process
+    if ( newproc() )
+    {
+        expand(USIZE+1);
+        estabur(0, 1, 0, 0);
+        copyout(icode, 0, sizeof icode);
+        //return goes to loc,0 of user init code just copied out
+        return;
+    }
+    sched();
+}
+
+/*
+ * set up software prototpye segmentation registers to implement the 3 pseudo text, data, stack segment sizes
+ * passed as arguments
+ * the argument sep specifies if the text and data+stack segments are to be separated
+ */
+estabur(nt, nd, ns, sep)
+{
+    register a, *ap, *dp;
+
+    if ( sep )
+    {
+        if ( cputype == 40 )
+            goto err;
+        if ( nseg(nt) > 8 || nseg(nd)+nseg(ns) > 8 )
+            goto err;
+    }
+    else
+        if ( nseg(nt)+nseg(nd)+nseg(ns) > 8 )
+            goto err;
+    if ( nt + nd + ns + USIZE > maxmem )
+        goto err;
+    a = 0;
+    ap = &u.u_uisa[0];
+    dp = &u.u_uisd[0];
+    while ( nt >= 128 )
+    {
+        *dp++ = (127 << 8) | RO;
+        *ap++ = a;
+        a =+ 128;
+        nt =- 128;
+    }
+    if ( nt )
+    {
+        *dp++ = ((nt - 1) << 8) | RO;
+        *ap++ = a;
+    }
+    if ( sep )
+        while ( ap < &u.u_uisa[8] )
+        {
+            *ap++ = 0;
+            *dp++ = 0;
+        }
+    a = USIZE;
+    while ( nd >= 128 )
+    {
+        *dp++ = (127 << 8) | RW;
+        *ap++ = a;
+        a =+ 128;
+        nd =- 128;
+    }
+    if ( nd )
+    {
+        *ap++ = a;
+        *dp++ = ((nd - 1) << 8 ) | RW;
+        a =+ nd;
+    }
+    while ( ap < &u.u_uisa[8] )
+    {
+        *dp++ = 0;
+        *ap++ = 0;
+    }
+    if ( sep )
+        while ( ap < &u.u_uisa[16] )
+        {
+            *ap++ = 0;
+            *dp++ = 0;
+        }
+    a =+ ns;
+    while ( ns >= 128 )
+    {
+        a =- 128;
+        ns =- 128;
+        *--dp = (127 << 8) | RW;
+        *--ap = a;
+    }
+    if ( ns )
+    {
+        *--dp = ((128 - ns) << 8) | RW | ED;
+        *--ap = a - 128;
+    }
+    if ( !sep )
+    {
+        ap = &u.u_uisa[0];
+        dp = &u.u_uisa[8];
+        while ( ap < &u.u_uisa[8] )
+            *dp++ = *ap++;
+        ap = &u_uisd[0];
+        dp = &u.uisd[8];
+        while ( ap < &u.u_isd[8] )
+            *dp++ = *ap++;
+    }
+    sureg();
+    return 0;
+
+err:
+    u.u_error = ENOMEM;
+    return -1;
+}
+
+/*
+ * load the user hardware segmentation registers from the software prototype.
+ * the software registers must have been setup prior by estabur
+ */
+sureg()
+{
+    register *up, *rp, a;
+
+    a = u.u_procp->p_addr;
+    up = &u.u_uisa[16];
+    rp = &UISA->r[16];
+    if ( cputype == 40 )
+    {
+        up =- 8;
+        rp =- 8;
+    }
+    while ( rp > &UISA->r[0] )
+        *--rp = *--up + a;
+    if ( (up = u.u_procp->p_textp) != NULL )
+        a =- up->x_caddr;
+    up = &u.u_uisd[16];
+    rp = &UISD->r[16];
+    if ( cputype == 40 )
+    {
+        up =- 8;
+        rp =- 8;
+    }
+    while ( rp > &UISD->r[0] )
+    {
+        *--rp = *--up;
+        if ( (*rp & WO) == 0 )
+            rp[(UISA - UISD) / 2] =- a;
+    }
+}
+
+/*
+ * return the arg/128 rounded up
+ */
+nseg(n)
+{
+    return (n+127) >> 7;
+}
+
+
+
+
+#include "../param.h"
+#include "../user.h"
+#include "../proc.h"
+#include "../text.h"
+#include "../systm.h"
+#include "../file.h"
+#include "../inode.h"
+#include "../buf.h"
+/*
+ * create a new process --the internel version of sys fork
+ * it returns 1 in the new process
+ * how this happens is rather hard to understand
+ * the essential fact is that the new process is created in such a way that it appears to have started executing
+ * in the same call to newproc as the parent; but in fact the code that runs is that of swtch.
+ * the subtle implication of the returned value of swtch(see above) is that this is the value that newproc's caller
+ * in the new process sees
+ */
+newproc()
+{
+    int a1, a2;
+    struct proc *p, *up;
+    register struct proc *rpp;
+    register *rip, n;
+
+    p = NULL;
+    /*
+     * first, just locate a slot for a process and copy the useful info from this process into it
+     * the panic cannot happen because fork has already checked for the existence of a slot
+     */
+retry:
+    mpid++;
+    if ( mpid < 0 )
+    {
+        mpid = 0;
+        goto retry;
+    }
+    for ( rpp = &proc[0]; rpp < &proc[NPROC]; rpp++ )
+    {
+        if ( rpp->p_stat == NULL && p == NULL )
+            p = rpp;
+        if ( rpp->p_pid == mpid )
+            goto retry;
+    }
+    if ( (rpp = p) == NULL )
+        panic("no procs");
+
+    /*
+     * make proc entry for new proc
+     */
+    rip = u.u_procp;
+    up = rip;
+    rpp->p_stat = SRUN;
+    rpp->p_flag = SLOAD;
+    rpp->p_uid = rip->p_uid;
+    rpp->p_ttyp = rip->p_ttyp;
+    rpp->p_nice = rip->p_textp;
+    rpp->p_pid = mpid;
+    rpp->p_ppid = rip->p_pid;
+    rpp->p_time = 0;
+
+    /*
+     * make duplicate entries
+     * where needed
+     */
+    for ( rip = &u.u_ofile[0]; rip < &u.u_ofile[NOFILE]; )
+        if ( (rpp = *rip++) != NULL )
+            rpp->f_count++;
+    if ( (rpp = up->p_textp) != NULL )
+    {
+        rpp->x_count++;
+        rpp->x_ccount++;
+    }
+    u.u_cdir->i_count++;
+    /*
+     * partially simulate the environment of the new process so that when it
+     * is actually created (by copying) it will look right
+     */
+    savu(u.u_rsav);
+    rpp = p;
+    u.u_procp = rpp;
+    rip = up;
+    n = rip->p_size;
+    a1 = rip->p_size;
+    rpp->p_size = n;
+    a2 = malloc(coremap, n);
+    /*
+     * if there is not enough core for the new process, swap out the current process to
+     * generate the copy
+     */
+    if ( a2 == NULL )
+    {
+        rip->p_stat = SIDL;
+        rpp->p_addr = a1;
+        savu(u.u_ssav);
+        xswap(rpp, 0, 0);
+        rpp->p_flag =| SSWAP;
+        rip->p_stat = SRUN;
+    }
+    else
+    {
+        //there is core, so just copy
+        rpp->p_addr = a2;
+        while ( n-- )
+            copyseg(a1++, a2++);
+    }
+    u.u_procp = rip;
+    return 0;
+}
+
+/*
+ * the main loop of the scheduling(swapping) process
+ * the basic idea is:
+ * see if anyone wants to be swapped in;
+ * swap out processes until there is room;
+ * swap him in;
+ * repeat.
+ * although it is not remarkably evident, the basic synchronization here is on the runin flag, which is slept on and 
+ * is set once per second by the clock routine.
+ * core shuffling therefore takes place once per second.
+ *
+ * panic: swap error --IO error while swapping
+ * this is the one panic that should be handled in a less drastic way
+ * its very hard
+ */
+sched()
+{
+    struct proc *p1;
+    register struct proc *rp;
+    register a, n;
+
+    /*
+     * find user to swap in of users ready, select one out longset
+     */
+    goto loop;
+sloop:
+    runin++;
+    sleep(&runin, PSWP);
+    
+loop:
+    sp16();
+    n = -1;
+    for ( rp = &proc[0]; rp < &proc[NPROC]; rp++ )
+        if ( rp->p_stat == SRUN && (rp->p_flag&SLOAD) == 0 && rp->p_time > n )
+        {
+            p1 = rp;
+            n = rp->p_time;
+        }
+    if ( n == -1 )
+    {
+        runout++;
+        sleep(&runout, PSWP);
+        goto loop;
+    }
+
+    //see if there is core for that process
+    spIO();
+    rp = p1;
+    a = rp->p_size;
+    if ( ( rp = rp->p_textp) != NULL )
+        if ( rp->x_ccount == 0 )
+            a =+ rp->x_size;
+    if ( (a = malloc(coremap, a))  != NULL )
+        goto found2;
+
+    /*
+     * none found
+     * look around for easy core
+     */
+    //1990
 }

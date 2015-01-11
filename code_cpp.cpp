@@ -449,6 +449,94 @@ done:
             freeaddrinfo(res0);
         }
 
-        //396
+        void TSocket::close()
+        {
+            if ( socket_ != THRIFT_INVALID_SOCKET )
+            {
+                shutdown(socket_, THRIFT_SHUT_RDWR);
+                ::THRIFT_CLOSESOCKET(socket_);
+            }
+            socket_ = THRIFT_INVALID_SOCKET;
+        }
+
+        void TSocket::setSocketFD(THRIFT_SOCKET socket)
+        {
+            if ( socket_ != THRIFT_INVALID_SOCKET )
+                close();
+            socket_ = socket;
+        }
+
+        uint32_t TSocket::read(uint8_t *buf, uint32_t len)
+        {
+            if ( socket_ == THRIFT_INVALID_SOCKET )
+                throw TTransportException(TTransportException::NOT_OPEN, "called read on non-open socket");
+
+            int32_t retries = 0;
+
+            uint32_t eagainThresholdMicros = 0;
+            if ( recvTimeout_ )
+                eagainThresholdMicros = (recvTimeout_ * 1000) / ((maxRecvRetries_ > 0) ? maxRecvRetries_ : 2);
+
+try_again:
+            struct timeval begin;
+            if ( recvTimeout_ > 0 )
+                THRIFT_GETTIMEOFDAY(&begin, NULL);
+            else
+                begin.tv_sec = begin.tv_usec = 0;
+            int got = static_cast<int>(recv(socket_, cast_socket(buf), len, 0));
+            int errno_copy = THRIFT_GET_SOCKET_ERROR;
+            ++g_socket_syscalls;
+
+            if ( got < 0 )
+            {
+                if ( errno_copy == THRIFT_EAGAIN )
+                {
+                    if ( recvTimeout_ == 0 )
+                        throw TTransportException(TTransportException::TIME_OUT, "THRIFT_EAGAIN (unavailable resources)");
+                    struct timeval end;
+                    THRIFT_GETTIMEDAY(&end, NULL);
+                    uint32_t readElapsedMicros = static_cast<uint32_t>(((end.tv_sec - begin.tv_sec) * 1000 * 1000) + (((uint64_t)(end.tv_usec - begin.tv_usec))));
+                    if ( !eagainThresholdMicros || (readElapsedMicros < eagainThresholdMicros))
+                    {
+                        if ( retried++ < maxRecvRetries )
+                        {
+                            THRIFT_SLEEP_USEC(50);
+                            goto try_again;
+                        }
+                        else
+                            throw TTansportException(TTransportException::TIME_OUT, "THRIFT_EAGAIN (unavailable resources)");
+                    }
+                    else 
+                        throw TTransportException(TTransportExcetion::TIME_OUT, "THRIFT_EAGAIN (timed out)");
+                }
+            }
+            if ( errno_copy == THRIFT_EINTR && retries++ < maxRecvRetries_ )
+                goto try_again;
+
+#if defined __FreeBSD__ || defined __MACH__
+            if ( errno_copy == THRIFT_ECONNRESET )
+                return 0;
+#endif
+
+#ifdef _WIN32
+            if ( errno_copy == WSAECONNRESET )
+                return 0;
+#endif
+
+            GlobalOutput.perror("TSocket::read() recv() " + getSocketInfo(), errno_copy);
+
+            if ( errno_copy == THRIFT_ECONNRESET )
+                throw TTransportException(TTransportException::NOT_OPEN, "THRIFT_ECONNRESET");
+            if ( errno_copy == THRIFT_ENOTCONN )
+                throw TTransportException(TTransportException::NOT_OPEN, "THRIFT_ENOTCONN");
+            if ( errno_copy == THRIFT_ETIMEDOUT )
+                throw TTransportException(TTransportException::TIMED_OUT, "THRIFT_ETIMEDOUT");
+            throw TTransportException(TTransportException::UNKNOWN, "Unknown", errno_copy);
+        }
+        if ( got == 0 )
+            return 0;
+        return got;
     }
+
+    //528
 }}}
