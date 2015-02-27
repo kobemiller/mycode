@@ -107,6 +107,7 @@ int main()
     printf("Lc = ");
     ListTraverse(Lc, print1);
 
+    DestroyList(La);
     return 0;
 }
 
