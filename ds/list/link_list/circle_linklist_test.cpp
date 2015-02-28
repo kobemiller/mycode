@@ -87,7 +87,10 @@ int main()
     printf("Lb = ");
     ListTraverse(Lb, print);
 
-    MergeList(La, Lb);
+    //MergeList(La, Lb);
+    La = La->next;
+    Lb = Lb->next;
+    merge_list_head(La, Lb);
     printf("La + Lb = ");
     ListTraverse(La, print);
 

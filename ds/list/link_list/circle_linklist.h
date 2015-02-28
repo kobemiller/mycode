@@ -205,4 +205,20 @@ void MergeList(LinkList &La, LinkList Lb)
     La = Lb;
 }
 
+//两个带头指针的循环单链表合并为一个循环单链表
+void merge_list_head(LinkList &La, LinkList Lb)
+{
+    LinkList pa, pb;
+    pa = La->next;
+    pb = Lb->next;
+    while ( pa->next != La->next )
+        pa = pa->next;
+    while ( pb->next != Lb->next )
+        pb = pb->next;
+    pb->next = La->next;
+    pa->next = Lb->next->next;
+    free(pa);
+    free(pb);
+}
+
 
