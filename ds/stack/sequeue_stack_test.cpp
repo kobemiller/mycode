@@ -26,7 +26,7 @@ int main()
     for ( j = 1; j <= 12; j++ )
             Push(s, j);
     printf("栈中元素依次为：");
-    StackTraverse(s, print);
+    StackTraverse(s, print_SElemType);
     Pop(s, e);
     printf("弹出的栈顶元素 e = %d\n", e);
     GetTop(s, e);

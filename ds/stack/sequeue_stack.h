@@ -94,7 +94,7 @@ void StackTraverse(SqStack S, void (*visit)(SElemType))
     printf("\n");
 }
 
-void print(SElemType c)
+void print_SElemType(SElemType c)
 {
     printf("%d ", c);
 }

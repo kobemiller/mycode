@@ -34,7 +34,7 @@ int main()
     printf("插入三个元素后，队列的长度为%d\n", QueueLength(q));
     printf("是否空队列? %d(1:yes 0:no)\n", QueueEmpty(q));
     printf("队列的元素依次为 ");
-    QueueTraverse(q, print);
+    QueueTraverse(q, print_QElemType);
     i = GetHead(q, d);
     if ( i == OK )
             printf("队头元素是：%d\n", d);

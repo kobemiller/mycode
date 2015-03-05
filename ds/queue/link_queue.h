@@ -122,7 +122,7 @@ void QueueTraverse(LinkQueue Q, void (*vi)(QElemType))
     printf("\n");
 }
 
-void print(QElemType i)
+void print_QElemType(QElemType i)
 {
     printf("%d ", i);
 }
