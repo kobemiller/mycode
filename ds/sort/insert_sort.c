@@ -213,11 +213,144 @@ void select_sort(int a[], int n)
     }
 }
 
+/*
+ * 堆排序：
+ * 1、初始化堆：将数列a[1...n]构造成大根堆
+ * 2、交换数据：将a[1]和a[n]交换，使a[n]是a[1...n]中的最大值，然后将a[1...n-1]重新调整为大根堆
+ * 3、以此类推，直到整个数列都是有序的
+ * 时间复杂度：O(nlg^n)
+ * 空间复杂度：O(1)
+ * 稳定性：不稳定
+ */
+//大根堆的向下调整算法
+void maxheap_down(int a[], int start, int end)
+{
+    int c = start;
+    int l = 2 * c + 1;
+    int tmp = a[c];
+    for ( ; l <= end; c = l, l = 2*l + 1 )
+    {
+        if ( l < end && a[l] < a[l+1] )
+            l++;
+        if ( tmp >= a[l] )
+            break;
+        else
+        {
+            a[c] = a[l];
+            a[l] = tmp;
+        }
+    }
+}
+void heap_sort_asc(int a[], int n)
+{
+    int i;
+    for ( i = n / 2 - 1; i >= 0; i-- )
+        maxheap_down(a, i, n-1);
+    for ( i = n-1; i > 0; i-- )
+    {
+        swap(a[0], a[i]);
+        maxheap_down(a, 0, i-1);
+    }
+}
+
+void minheap_down(int a[], int start, int end)
+{
+    int c = start;
+    int l = 2*c + 1;
+    int tmp = a[c];
+    for ( ; l <= end; c = l, l = 2*l + 1 )
+    {
+        if ( l < end && a[l] > a[l+1] )
+            l++;
+        if ( tmp <= a[l] )
+            break;
+        else 
+        {
+            a[c] = a[l];
+            a[l] = tmp;
+        }
+    }
+}
+void heap_sort_desc(int a[], int n)
+{
+    int i;
+    for ( i = n / 2 - 1; i >= 0; i-- )
+        minheap_down(a, i, n-1);
+    for ( i = n-1; i > 0; i-- )
+    {
+        swap(a[0], a[i]);
+        minheap_down(a, 0, i-1);
+    }
+}
+
+/*
+ * 归并排序
+ * 从下往上的归并排序
+ * 从上往下的归并排序
+ * 时间复杂度：O(nlog2^n)
+ * 空间复杂度：O(n)
+ * 稳定性：稳定
+ */
+void merge(int a[], int start, int mid, int end)
+{
+    int *tmp = (int *)malloc((end - start + 1) * sizeof(int));
+    int i = start;
+    int j = mid + 1;
+    int k = 0;
+    while ( i <= mid && j <= end )
+    {
+        if ( a[i] <= a[j] )
+            tmp[k++] = a[i++];
+        else
+            tmp[k++] = a[j++];
+    }
+    while ( i <= mid )
+        tmp[k++] = a[i++];
+    while ( j <= end )
+        tmp[k++] = a[j++];
+    for ( i = 0; i < k; i++ )
+        a[start+i] = tmp[i];
+    free(tmp);
+}
+
+void merge_sort_up2down(int a[], int start, int end)
+{
+    if ( a == NULL || start >= end )
+        return;
+    int mid = (end + start) / 2;
+    merge_sort_up2down(a, start, mid);
+    merge_sort_up2down(a, mid+1, end);
+
+    merge(a, start, mid, end);
+}
+
+void merge_groups(int a[], int len, int gap)
+{
+    int i;
+    int twolen = 2 * gap;
+
+    for ( i = 0; i + 2*gap - 1 < len; i += (2*gap) )
+        merge(a, i, i + gap - 1, i + 2*gap - 1);
+
+    if ( i + gap - 1 < len - 1 )
+        merge(a, i, i + gap - 1, len - 1);
+}
+
+void merge_sort_down2up(int a[], int len)
+{
+    int n;
+    if ( a == NULL || len <= 0 )
+        return;
+    for ( n = 1; n < len; n *= 2 )
+        merge_groups(a, len, n);
+}
+
 void print(int a[], int n)
 {
     int i;
     for ( i = 0; i < n; i++ )
         printf("%4d ", a[i]);
+    printf("\n");
     printf("\n");
 }
 
@@ -280,10 +413,12 @@ int main()
                 break;
             case 7:
                 printf("堆排序的结果为：");
+                heap_sort_asc(a, N);
                 print(a, N);
                 break;
             case 8:
                 printf("归并排序的结果为：");
+                merge_sort_up2down(a, 0, N-1);
                 print(a, N);
                 break;
             case 9:
