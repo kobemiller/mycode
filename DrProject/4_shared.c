@@ -1,0 +1,53 @@
+/*
+ * 共享内存下，多线程效率测试
+ * gcc -g 4_shared.c -pthread 测试在非并行模式下程序的执行时间
+ * 
+ * gcc -g 4_shared.c -pthread -openmp 测试并行模式下程序的执行时间
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <omp.h>
+#include <sys/time.h>
+
+#define THREAD_NUM 50
+
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+void *thread()
+{
+    long i = 0;
+    unsigned int count = 0;
+    struct timeval start, end;
+    float time_cost;
+
+    gettimeofday(&start, NULL);
+
+    for ( i; i < 10000000; i++ )
+    {
+        pthread_mutex_lock(&lock);
+        count++;
+        pthread_mutex_unlock(&lock);
+    }
+    
+    gettimeofday(&end, NULL);
+    time_cost = 1000000 * (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec);
+    time_cost /= 1000000;
+    
+    printf("%u: count = %u, i = %ld, time_cost = %f\n", pthread_self(), count, i, time_cost);
+}
+
+int main()
+{
+    pthread_t tid[THREAD_NUM];
+    int i;
+
+#pragma omp parallel for
+    for ( i = 0; i < THREAD_NUM; i++ )
+        pthread_create(&tid[i], NULL, thread, NULL);
+#pragma omp parallel for 
+    for ( i = 0; i < THREAD_NUM; i++ )
+        pthread_join(tid[i], NULL);
+
+    return 0;
+}
