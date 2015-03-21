@@ -1,0 +1,136 @@
+/*
+ * =====================================================================================
+ *
+ *       Filename:  block.cpp
+ *
+ *    Description:  俄罗斯方块的linux版 
+ *
+ *        Version:  1.0
+ *        Created:  2015年03月20日 09时31分20秒
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ * =====================================================================================
+ */
+
+#include <iostream>
+#include <cstdlib>
+#include <pthread.h>
+#include <time.h>
+
+#include <termios.h>
+#include <fcntl.h>
+
+#define TABLE_SIZE      20
+#define BLOCK_SIZE      4
+#define SLEEP_TIME      500
+
+struct grid
+{
+    int x;
+    int y;
+};
+
+class Block
+{
+public:
+    enum direct {UP, DOWN, LEFT, RIGHT};    //定义方向
+    grid g[BLOCK_SIZE];                     //方块的坐标信息
+
+    void def_block(grid g1, grid g2, grid g3, grid g4);
+    void rotate();                          //旋转方块
+    void move(int dir);
+    void set_cen(grid g);
+    grid get_cen();
+    void set_type(int t);
+    int get_type();
+    void back();
+    void create_block(int x, int y);
+
+private:
+    grid center;
+    int type;
+};
+
+void Block::def_block(grid g1, grid g2, grid g3, grid g4)
+{
+    g[0] = g1;
+    g[1] = g2;
+    g[2] = g3;
+    g[3] = g4;
+}
+
+void Block::rotate()
+{
+    int x, y, i = 0;
+    for ( i; i <= 3; i++ )
+    {
+        x = g[i].x - center.x;
+        y = g[i].y - center.y;
+        g[i].x = center.x + y;
+        g[i].y = center.y - x;
+    }
+}
+
+void Block::move(int dir)
+{
+    int d = dir, i = 0;
+
+    switch ( d )
+    {
+        case UP:
+            for ( i; i <= 3; i++ )
+                g[i].y++;
+            center.y++;
+            break;
+        case DOWN:
+            for ( i; i <= 3; i++ )
+                g[i].y--;
+            center.y--;
+            break;
+        case LEFT:
+            for ( i; i <= 3; i++ )
+                g[i].x--;
+            center.x--;
+            break;
+        case RIGHT:
+            for ( i; i <= 3; i++ )
+                g[i].x++;
+            center.x++;
+            break;
+    }
+}
+
+void Block::set_cen(grid g)
+{
+    center = g;
+}
+
+grid Block::get_cen()
+{
+    return center;
+}
+
+void Block::set_type(int t)
+{
+    type = t;
+}
+
+int Block::get_type()
+{
+    return type;
+}
+
+void Block::back()
+{
+    int x, y, i;
+    for ( i = 0; i <= 3; i++ )
+    {
+        x = g[i].x - center.x;
+        y = g[i].y - center.y;
+        g[i].x = center.x - y;
+        g[i].y = center.y + x;
+    }
+}
+
+
