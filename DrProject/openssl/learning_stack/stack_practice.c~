@@ -1,0 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <openssl/safestack.h>
+
+#define sk_Student_new(st) SKM_sk_new(Student, (st))
