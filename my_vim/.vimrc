@@ -150,8 +150,9 @@ map <F5> :!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q<CR><CR>
 imap <F5> <ESC>:!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q<CR><CR>
 
 " vim 启动时自动载入以下tags文件
-set tags=tags
-set tags+=./tags
+"set tags=tags
+"set tags+=./tags
+set tags=./tags,tags;$HOME
 
 "set tags+=/usr/local/src/linux-2.6.32.61/tags
 "set tags+=/usr/local/src/linux-3.12.6/tags
@@ -170,6 +171,34 @@ set tags+=/usr/include/netinet/tags
 set tags+=/usr/include/openssl/tags
 set tags+=/usr/include/sasl/tags
 set tags+=/usr/include/sys/tags
+
+"cscope 相关设置
+if has("cscope")
+    set cscopetag   " 使支持用 Ctrl+]  和 Ctrl+t 快捷键在代码间跳来跳去
+    " check cscope for definition of a symbol before checking ctags:
+    " set to 1 if you want the reverse search order.
+    set csto=1
+
+    " add any cscope database in current directory
+    if filereadable("cscope.out")
+        cs add cscope.out
+        " else add the database pointed to by environment variable
+    elseif $CSCOPE_DB !=""
+        cs add $CSCOPE_DB
+    endif
+
+    " show msg when any other cscope db added
+    set cscopeverbose
+
+    nmap <C-/>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-/>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-/>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-/>t :cs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-/>e :cs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-/>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap <C-/>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap <C-/>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+endif
 
 " 系统剪贴板映射 
 set clipboard=unnamedplus
