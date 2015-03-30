@@ -1,0 +1,50 @@
+     1                                  section .data
+     2                                  ;EatMsg: db "eat at Joe's", 10
+     3                                  ;EatLen: equ $-EatMsg
+     4 00000000 4B414E4741524F4F        Snippet db "KANGAROO"
+     5                                  
+     6                                  section .text
+     7                                  
+     8                                  global _start
+     9                                  
+    10                                  _start:
+    11 00000000 90                        nop
+    12                                    ;
+    13                                    ;mov eax, 'WXYZ'
+    14                                    ;mov ax, 067FEH
+    15                                    ;mov bx, ax
+    16                                    ;mov cl, bh
+    17                                    ;mov ch, bl
+    18                                    ;xchg cl, ch
+    19                                    
+    20                                    ;mov al, [EatMsg]
+    21                                    ;mov ax, [EatMsg]
+    22                                    ;mov [EatMsg], byte 'G'
+    23                                    
+    24                                    ;mov eax, 0FFFFFFFFH
+    25                                    ;mov ebx, 02DH
+    26                                    ;dec ebx
+    27                                    ;inc eax
+    28                                    
+    29                                    ;mov eax, 5
+    30                                    ;Domore: dec eax
+    31                                    ;jnz Domore
+    32                                    
+    33                                   ; mov ebx, Snippet
+    34                                    ;mov eax, 8
+    35                                    
+    36                                    ;Domore: add byte [ebx], 32
+    37                                  ;	  inc ebx
+    38                                  ;	  dec eax
+    39                                  ;	  jnz Domore
+    40 00000001 B82A000000                mov eax, 42
+    41 00000006 F7D8                      neg eax
+    42 00000008 83C02A                    add eax, 42
+    43 0000000B 66B8D6FF                  mov ax, -42
+    44 0000000F 0FBFD8                    movsx ebx, ax
+    45                                    ;...
+    46                                    ;
+    47 00000012 90                        nop
+    48                                    
+    49                                  section .bss
+    50                                    
