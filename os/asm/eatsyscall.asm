@@ -17,7 +17,7 @@ global _start 		; 连接器需要据此找到入口点
 
 _start:
 	nop 		; 这个无操作指令让gdb非常高兴
-	mov eax, 4 	; 指定sys_write系统调用
+	mov eax, 4 	; 指定sys_write系统调用(通过将服务的编号放入寄存器EAX中来告诉调度程序需要哪个系统服务)
 	mov ebx, 1 	; 指定文件描述符1：标准输出
 	mov ecx, EatMsg ; 传递显示信息的偏移地址
 	mov edx, EatLen ; 传递显示消息的长度
