@@ -1,0 +1,103 @@
+/*
+ * bzero && memset
+ */
+/*
+ * The bzero function sets the first n bytes of the byte area starting at s
+ * to zero(bytes containing '\0')
+ */
+#include <string.h>
+
+void bzero(void *s, size_t n);
+
+/*
+ * memset function fills the first n bytes of the memory area pointed to by
+ * s with the constant byte c.
+ * returns a pointer to the memory area s.
+ */
+#include <string.h>
+
+void *memset(void *s, int c, size_t n);
+
+/*
+ *
+ * that struct in_addr is a weird beast on different systems. Sometimes it's 
+ * a crazy union with all kinds of #defines and other nonsense. But what you
+ * should do is only use the s_addr field in this structure, because many
+ * systems only implement that one.
+ * http://beej.us/guide/bgnet/output/html/multipage/sockaddr_inman.html
+ */
+
+//IPv4套接字结构体
+struct in_addr
+{
+    in_addr_t   s_addr;
+};
+
+struct sockaddr_in
+{
+    uint8_t         sin_len;
+    sa_family_t     sin_family;
+    in_port_t       sin_port;
+    struct in_addr  sin_addr;
+    char            sin_zero;
+};
+
+//通用套接字结构体
+//唯一用途就是对只指向于协议的套接字地址结构的指针执行类型强制转换
+struct sockaddr
+{
+    uint8_t         sa_len;
+    sa_family_t     sa_family;
+    char            sa_data[14];
+};
+
+//IPv6套接字结构体
+struct in6_addr
+{
+    uint8_t         sa_addr[16];
+};
+
+#define SIN6_LEN
+struct sockaddr_in6
+{
+    uint8_t         sin6_len;
+    sa_family_t     sin6_family;
+    in_port_t       sin6_port;
+    uint32_t        sin6_flowinfo;
+    struct in6_addr sin6_addr;
+    uint32_t        sin6_scope_id;
+};
+
+//通用套接字结构体
+struct sockaddr_storage
+{
+    uint8_t     sa_len;
+    sa_family_t sa_family;
+
+};
+
+/*
+ * IPv4和IPv6套接字地址结构是固定长度的，unix域结构和数据链路结构是可变长度的。
+ */
+
+#include <netinet/in.h>
+
+/*
+ * h-->host
+ * n-->network
+ * s-->port 
+ * l-->IPv4
+ */
+uint16_t htons(uint16_t host16bitvalue);
+uint32_t htonl(uint32_t host32bitvalue);
+
+uint16_t ntohs(uint16_t net16bitvalue);
+uint32_t ntohl(uint32_t net16bitvalue);
+
+#include <strings.h>
+extern int bcmp (const void *__s1, const void *__s2, size_t __n)
+     __THROW __attribute_pure__;
+extern void bcopy (const void *__src, void *__dest, size_t __n) __THROW;
+extern void bzero (void *__s, size_t __n) __THROW;
+
+
