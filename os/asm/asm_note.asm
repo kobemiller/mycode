@@ -50,3 +50,21 @@
 ; pushad 	;将所有8个32位通用寄存器压入堆栈
 
 ; pop的工作方式和push类似，都只能操作16位或32位操作数
+
+; 内存寻址是逐字节而不是逐双字进行的
+
+mov edx, ecx
+shl edx, 1
+add edx, ecx
+;上下两段代码都是将edx乘3
+mov edx, ecx
+lea edx, [edx * 2 + edx]    ;lea在一个机器周期里完成
+
+jmp <label>     ;无条件转移指令
+
+jz <label>      ;ZF位为0时跳转
+jnz <label>     ;ZF位不为0时跳转
+
+;byte标示符使第一个操作数成为一个8位操作数
+mov byte [ebx], al
+
