@@ -31,16 +31,24 @@ typedef struct Student_st
     char    *otherinfo;
 } Student;
 typedef STACK_OF(Student)   Students;
+DECLARE_STACK_OF(Student);
 
 Student *Student_Malloc()
 {
     Student *a = malloc(sizeof(Student));
     a->name = malloc(20);
-    strcpy(a->name, "zcp");
     a->otherinfo = malloc(20);
-    strcpy(a->otherinfo, "no info");
 
     return a;
+}
+
+void student_set(Student *s, char *n, int a, char *o)
+{
+    strcpy(s->name, n);
+    s->age = a;
+    strcpy(s->otherinfo, o);
+
+    printf("name: %s\n", s->name);
 }
 
 void Student_Free(Student *a)
@@ -50,39 +58,61 @@ void Student_Free(Student *a)
     free(a);
 }
 
-static int Student_cmp(Student *a, Student *b)
+static int Student_cmp(Student **a, Student **b)
 {
     int     ret;
 
-    ret = strcmp(a->name, b->name);
+    ret = strcmp((*a)->name, (*b)->name);
 
     return ret;
 }
 
+void print(Students *s)
+{
+    int i;
+    Student *temp = NULL;
+
+    printf("遍历:\n");
+    printf("%d\n", sk_Student_num(s));
+    for ( i = 0; i < sk_Student_num(s); i++ )
+    {
+        temp = (Students *)sk_value(s, i);
+        printf("%d:     name -- %s\n", i+1, temp->name);
+        printf("        age --- %d\n", temp->age);
+        printf("        otherinfo - %s\n", temp->otherinfo);
+    }
+}
+
 int main()
 {
-    Student     *s, *snew;
-    Student     *s1, *one, *s2;
+    Students     *s = NULL, *snew = NULL;
+    Student     *s1 = NULL, *s2 = NULL, *s3 = NULL, *s4 = NULL, *s5 = NULL;
+    Student     *one = NULL;
     int         i, num;
 
-    s       = sk_Student_new_null();
-    snew    = sk_Student_new(Student_cmp);
-    s2      = Student_Malloc();
-    sk_Student_push(snew, s2);
-    i       = sk_Student_find(snew, s2);
-    s1      = Student_Malloc();
-    sk_Student_push(s, s1);
-    num     = sk_Student_num(s);
-    for ( i = 0; i < num; i++ )
-    {
-        one = sk_Student_value(s, i);
-        printf("student name:   %s\n", one->name);
-        printf("student age :   %d\n", one->age);
-        printf("student otherinfo:  %s\n\n", one->otherinfo);
-    }
+    s = sk_Student_new(Student_cmp);
+    s1 = Student_Malloc();
+    student_set(s1, "km", 24, "kobe");
+    s2 = Student_Malloc();
+    student_set(s2, "kai", 24, "miller");
+    s3 = Student_Malloc();
+    student_set(s3, "lin", 23, "l");
+    s4 = Student_Malloc();
+    student_set(s4, "ting", 25, "x");
+    s5 = Student_Malloc();
+    student_set(s5, "chen", 50, "tes");
 
-    sk_Student_pop_free(s, Student_Free);
-    sk_Student_pop_free(snew, Student_Free);
+    sk_Student_push(s, s1);
+    sk_Student_push(s, s2);
+    sk_Student_push(s, s3);
+    sk_Student_push(s, s4);
+    sk_Student_push(s, s5);
+
+    print(s);
+
+    printf("%d\n", sk_Student_find(s, s3));
+
+    print(s);
 
     return 0;
 }

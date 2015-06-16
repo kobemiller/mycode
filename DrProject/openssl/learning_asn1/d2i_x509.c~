@@ -1,0 +1,505 @@
+/*
+ * d2i_x509 分析
+ */
+
+/*
+ * 实际调用的函数
+ */
+d2i_X509(X509 **, const unsigned char **, long);
+
+/*
+ * 宏
+ */
+IMPLEMENT_ASN1_FUNCTIONS(X509)
+
+#define IMPLEMENT_ASN1_FUNCTIONS(stname) \
+        IMPLEMENT_ASN1_FUNCTIONS_fname(stname, stname, stname)
+//对应X509的为：
+#define IMPLEMENT_ASN1_FUNCTIONS(X509)  \
+       IMPLEMENT_ASN1_FUNCTIONS_fname(X509, X509, X509)
+
+#define IMPLEMENT_ASN1_FUNCTIONS_fname(stname, itname, fname) \
+        IMPLEMENT_ASN1_ENCODE_FUNCTIONS_fname(stname, itname, fname) \
+        IMPLEMENT_ASN1_ALLOC_FUNCTIONS_fname(stname, itname, fname)
+ 
+//对应X509的为：
+
+#define IMPLEMENT_ASN1_ALLOC_FUNCTIONS_fname(stname, itname, fname) \
+        stname *fname##_new(void) \
+        { \
+                return (stname *)ASN1_item_new(ASN1_ITEM_rptr(itname)); \
+        } \
+        void fname##_free(stname *a) \
+        { \
+                ASN1_item_free((ASN1_VALUE *)a, ASN1_ITEM_rptr(itname)); \
+        }
+
+//对应X509的为：
+X509 *X509_new(void)
+{
+    return (X509 *)ASN1_item_new(ASN1_ITEM_rptr(X509));
+}
+void X509_free(X509 *a)
+{
+    ASN1_item_free((ASN1_VALUE *)a, ASN1_ITEM_rptr(X509));
+}
+
+# define IMPLEMENT_ASN1_ENCODE_FUNCTIONS_fname(stname, itname, fname) \
+        stname *d2i_##fname(stname **a, const unsigned char **in, long len) \
+        { \
+                return (stname *)ASN1_item_d2i((ASN1_VALUE **)a, in, len, ASN1_ITEM_rptr(itname));\
+        } \
+        int i2d_##fname(stname *a, unsigned char **out) \
+        { \
+                return ASN1_item_i2d((ASN1_VALUE *)a, out, ASN1_ITEM_rptr(itname));\
+        }
+
+//对应X509的为：
+//a为指向证书的二级指针
+X509 *d2i_X509(X509 **a, const unsigned char **in, long len)
+{
+    return (X509 *)ASN1_item_d2i((ASN1_VALUE **)a, in, len, ASN1_ITEM_rptr(X509));
+}
+int i2d_X509(X509 *a, unsigned char **out)
+{
+    return ASN1_item_i2d((ASN1_VALUE *)a, out, ASN1_ITEM_rptr(X509));
+}
+
+/*
+ * ASN1_ITEM_rptr
+ * ASN1_ITEM *
+ */
+#define ASN1_ITEM_rptr(ref)     (ref##_it())
+//对应X509的为：
+//X509_it()函数
+
+ASN1_VALUE *ASN1_item_d2i(ASN1_VALUE **pval, const unsigned char **in, long len,
+        const ASN1_ITEM *it)
+{
+    ASN1_TLC c;
+    ASN1_VALUE *ptmpval = NULL;
+    if ( !pval )
+        pval = &ptmpval;
+    asn1_tlc_clear_nc(&c);
+    if ( ASN1_item_ex_d2i(pval, in, len, it, -1, 0, 0, &c) > 0 )
+        return *pval;
+
+    return NULL;
+}
+
+int ASN1_item_ex_d2i(ASN1_VALUE **pval, const unsigned char **in, long len, 
+        const ASN1_ITEM *it, int tag, int aclass, char opt, ASN1_TLC *ctx)
+{
+    const ASN1_TEMPLATE *tt, *errtt = NULL;
+    const ASN1_COMPAT_FUNCS *cf;
+    const ASN1_EXTERN_FUNCS *ef;
+    const ASN1_AUX *aux = it->funcs;
+    ASN1_aux_cb *asn1_cb;
+    const unsigned char *p = NULL, *q;
+    unsigned char *wp = NULL;   /* BIG FAT WARNING! BREAKS CONST WHERE USED */
+    unsigned char imphack = 0, oclass;
+    char seq_eoc, seq_nolen, cst, isopt;
+    long tmplen;
+    int i;
+    int otag;
+    int ret = 0;
+    ASN1_VALUE **pchptr, *ptmpval;
+    if (!pval)
+        return 0;
+    if (aux && aux->asn1_cb)
+        asn1_cb = aux->asn1_cb;
+    else
+        asn1_cb = 0;
+    
+    switch ( it->itype )
+    {
+        //叶子节点，对应最简单的数据结构
+        case ASN1_ITYPE_PRIMITIVE:
+            if ( it->templates )
+            {
+                //特殊情况：it->sname: "X509_NAME_INTERNAL"/"X509_NAME_ENTRIES"
+                if ( (tag != -1) || opt )
+                {
+                    ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_ILLEGAL_OPTIONS_ON_ITEM_TEMPLATE);
+                    goto err;
+                }
+                //由X509_name_ex_d2i触发调用
+                return asn1_template_ex_d2i(pval, in, len, it->template, opt, ctx);
+            }
+            //将DER编码转换为内部的简单数据结构
+            return asn1_d2i_ex_primitive(pval, in, len, it, tag, aclass, opt, ctx);
+
+        case ASN1_ITYPE_EXTERN:
+            //it->sname: "X509_NAME"
+            ef = it->funcs;
+            return ef->asn1_ex_d2i(pval, in, len, it, tag, aclass, opt, ctx);
+
+        case ASN1_ITYPE_SEQUENCE:
+            p = *in;
+            tmplen = len;
+
+            if ( tag == -1 )
+            {
+                tag = V_ASN1_SEQUENCE;
+                aclass = V_ASN1_UNIVERSAL;
+            }
+
+            ret = asn1_check_tlen(&len, NULL, NULL, &seq_eoc, &cst, &p, len, tag, aclass, opt, ctx);
+
+            if ( !ret )
+            {
+                ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ERR_R_NESTED_ASN1_ERROR);
+                goto err;
+            }
+            else if ( ret == -1 )
+                return -1;
+            if ( aux && (aux->flags & ASN1_AFLG_BROKEN) )
+            {
+                len = tmplen - (p - *in);
+                seq_nolen = 1;
+            }
+            else
+                seq_nolen = seq_eoc;
+
+            if ( !cst )
+            {
+                ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_SEQUENCE_NOT_CONSTRUCTED);
+                goto err;
+            }
+
+            //如果数据指针为空（对于证书而言为X509*）
+            if ( !*pval && !ASN1_item_ex_new(pval, it) )
+            {
+                ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ERR_R_NESTED_ASN1_ERROR);
+                goto err;
+            }
+
+            if ( asn1_cb && !asn1_cb( ASN1_OP_D2I_PRE, pval, it, NULL) )
+                goto auxerr;
+		
+            //对templates中的各个成员分别进行转换
+		    for ( i = 0, tt = it->templates; i < it->tcount; i++, tt++ ) 
+            {
+                const ASN1_TEMPLATE *seqtt;
+                ASN1_VALUE **pseqval;
+                seqtt = asn1_do_adb(pval, tt, 1);
+                if (!seqtt)
+                    goto err;
+                pseqval = asn1_get_field_ptr(pval, seqtt);
+                if (!len)
+                    break;
+                q = p;
+                if ( asn1_check_eoc(&p, len) ) 
+                {
+                    if (!seq_eoc) 
+                    {
+                        ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_UNEXPECTED_EOC);
+                        goto err;
+                    }
+                    len -= p - q;
+                    seq_eoc = 0;
+                    q = p;
+                    break;
+                }
+                if ( i == (it->tcount - 1) )
+                    isopt = 0;
+                else
+                    isopt = (char)(seqtt->flags & ASN1_TFLG_OPTIONAL);
+
+                ret = asn1_template_ex_d2i(pseqval, &p, len, seqtt, isopt, ctx);
+                if ( !ret ) 
+                {
+                    errtt = seqtt;
+                    goto err;
+                } 
+                else if ( ret == -1 ) 
+                {
+                    ASN1_template_free(pseqval, seqtt);
+                    continue;
+                }
+                len -= p - q;
+            }
+
+        /* Check for EOC if expecting one */
+            if ( seq_eoc && !asn1_check_eoc(&p, len) ) 
+            {
+                ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_MISSING_EOC);
+                goto err;
+            }
+        /* Check all data read */
+            if ( !seq_nolen && len ) 
+            {
+                ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_SEQUENCE_LENGTH_MISMATCH);
+                goto err;
+            }
+
+            for ( ; i < it->tcount; tt++, i++ ) 
+            {
+                const ASN1_TEMPLATE *seqtt;
+                seqtt = asn1_do_adb(pval, tt, 1);
+                if ( !seqtt )
+                    goto err;
+                if ( seqtt->flags & ASN1_TFLG_OPTIONAL ) 
+                {
+                    ASN1_VALUE **pseqval;
+                    pseqval = asn1_get_field_ptr(pval, seqtt);
+                    ASN1_template_free(pseqval, seqtt);
+                } 
+                else 
+                {
+                    errtt = seqtt;
+                    ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_FIELD_MISSING);
+                    goto err;
+                }
+            }
+        /* Save encoding */
+            if ( !asn1_enc_save(pval, *in, p - *in, it) )
+                goto auxerr;
+            *in = p;
+            if ( asn1_cb && !asn1_cb(ASN1_OP_D2I_POST, pval, it, NULL) )
+                goto auxerr;
+            return 1;
+
+        default:
+            return 0;
+    }
+auxerr:
+    ASN1err(ASN1_F_ASN1_ITEM_EX_D2I, ASN1_R_AUX_ERROR);
+err:
+    ASN1_item_ex_free(pval, it);
+    if (errtt)
+        ERR_add_error_data(4, "Field=", errtt->field_name, ", Type=", it->sname);
+    else
+        ERR_add_error_data(2, "Type=", it->sname);
+    return 0;
+}
+
+ASN1_VALUE *ASN1_item_new(const ASN1_ITEM *it)
+{
+    ASN1_VALUE *ret = NULL;
+    if ( ASN1_item_ex_new(&ret, it) > 0 )
+        return ret;
+    return NULL;
+}
+
+int ASN1_item_ex_new(ASN1_VALUE **pval, const ASN1_ITEM *it)
+{
+    return asn1_item_ex_combine_new(pval, it, 0);
+}
+
+static int asn1_item_ex_combine_new(ASN1_VALUE **pval, const ASN1_ITEM *it, int combine)
+{
+    const ASN1_TEMPLATE *tt = NULL;
+    const ASN1_COMPAT_FUNCS *cf;
+    const ASN1_EXTERN_FUNCS *ef;
+    const ASN1_AUX *aux = it->funcs;
+    ASN1_aux_cb *asn1_cb;
+    int i;
+
+    if ( aux && aux->asn1_cb )
+        asn1_cb = aux->asn1_cb;
+    else
+        asn1_cb = 0;
+
+    if ( !combine )
+        *pval = NULL;
+
+    switch ( it->itype )
+    {
+        case ASN1_ITYPE_PRIMITIVE:
+            if ( it->templates )
+            {
+                if ( !ASN1_template_new(pval, it->templates) )
+                    goto memerr;
+            }
+            else if ( !ASN1_primitive_new(pval, it) )
+                goto memerr;
+            break;
+
+        case ASN1_ITYPE_SEQUENCE:
+            if ( asn1_cb )
+            {
+                i = asn1_cb(ASN1_OP_NEW_PRE, pval, it, NULL);
+                if ( !i )
+                    goto auxerr;
+                if ( i == 2 )
+                    return 1;
+            }
+            if ( !combine )
+            {
+                *pval = malloc(it->size);
+                if ( !*pval )
+                    goto memerr;
+                memset(*pval, 0, it);
+                asn1_do_lock(pval, 0, it);
+                asn1_enc_init(pval, it);
+            }
+            //对数据结构成员，依次申请内存
+            for ( i = 0, tt = it->templates; i < it->tcount; tt++, i++ )
+            {
+                pseqval = asn1_get_field_ptr(pval, tt);
+                if ( !ASN1_template_new(pseqval, tt) )
+                    goto memerr;
+            }
+            if ( asn1_cb && !asn1_cb(ASN1_OP_NEW_POST, pval, it, NULL) )
+                goto auxerr;
+            break;
+    }
+    return 1;
+
+memerr:
+    ASN1err(ASN1_F_ASN1_ITEM_EX_COMBINE_NEW, ERR_R_MALLOC_FAILURE);
+    return 0;
+auxerr:
+    ASN1err(ASN1_F_ASN1_ITEM_EX_COMBINE_NEW, ASN1_R_AUX_ERROR);
+    ASN1_item_ex_free(pval, it);
+    return 0;
+}
+
+int asn1_ex_c2i(ASN1_VALUE **pval, const unsigned char *cont, int len,
+                int utype, char *free_cont, const ASN1_ITEM *it)
+{
+    ASN1_VALUE **opval = NULL;
+    ASN1_STRING *stmp;
+    ASN1_TYPE *typ = NULL;
+    int ret = 0;
+    const ASN1_PRIMITIVE_FUNCS *pf;
+    ASN1_INTEGER **tint;
+    pf = it->funcs;
+
+    if (pf && pf->prim_c2i)
+        return pf->prim_c2i(pval, cont, len, utype, free_cont, it);
+    /* If ANY type clear type and set pointer to internal value */
+    if (it->utype == V_ASN1_ANY) {
+        if (!*pval) {
+            typ = ASN1_TYPE_new();
+            if (typ == NULL)
+                goto err;
+            *pval = (ASN1_VALUE *)typ;
+        } else
+            typ = (ASN1_TYPE *)*pval;
+
+        if (utype != typ->type)
+            ASN1_TYPE_set(typ, utype, NULL);
+        opval = pval;
+        pval = &typ->value.asn1_value;
+    }
+    switch (utype) {
+    case V_ASN1_OBJECT:
+        if (!c2i_ASN1_OBJECT((ASN1_OBJECT **)pval, &cont, len))
+            goto err;
+        break;
+
+    case V_ASN1_NULL:
+        if (len) {
+            ASN1err(ASN1_F_ASN1_EX_C2I, ASN1_R_NULL_IS_WRONG_LENGTH);
+            goto err;
+        }
+        *pval = (ASN1_VALUE *)1;
+        break;
+
+    case V_ASN1_BOOLEAN:
+        if (len != 1) {
+            ASN1err(ASN1_F_ASN1_EX_C2I, ASN1_R_BOOLEAN_IS_WRONG_LENGTH);
+            goto err;
+        } else {
+            ASN1_BOOLEAN *tbool;
+            tbool = (ASN1_BOOLEAN *)pval;
+            *tbool = *cont;
+        }
+        break;
+
+    case V_ASN1_BIT_STRING:
+        if (!c2i_ASN1_BIT_STRING((ASN1_BIT_STRING **)pval, &cont, len))
+            goto err;
+        break;
+
+    case V_ASN1_INTEGER:
+    case V_ASN1_NEG_INTEGER:
+    case V_ASN1_ENUMERATED:
+    case V_ASN1_NEG_ENUMERATED:
+        tint = (ASN1_INTEGER **)pval;
+        if (!c2i_ASN1_INTEGER(tint, &cont, len))
+            goto err;
+        /* Fixup type to match the expected form */
+        (*tint)->type = utype | ((*tint)->type & V_ASN1_NEG);
+        break;
+
+    case V_ASN1_OCTET_STRING:
+    case V_ASN1_NUMERICSTRING:
+    case V_ASN1_PRINTABLESTRING:
+    case V_ASN1_T61STRING:
+    case V_ASN1_VIDEOTEXSTRING:
+    case V_ASN1_IA5STRING:
+    case V_ASN1_UTCTIME:
+    case V_ASN1_GENERALIZEDTIME:
+    case V_ASN1_GRAPHICSTRING:
+    case V_ASN1_VISIBLESTRING:
+    case V_ASN1_GENERALSTRING:
+    case V_ASN1_UNIVERSALSTRING:
+    case V_ASN1_BMPSTRING:
+    case V_ASN1_UTF8STRING:
+    case V_ASN1_OTHER:
+    case V_ASN1_SET:
+    case V_ASN1_SEQUENCE:
+    default:
+        if (utype == V_ASN1_BMPSTRING && (len & 1)) {
+            ASN1err(ASN1_F_ASN1_EX_C2I, ASN1_R_BMPSTRING_IS_WRONG_LENGTH);
+            goto err;
+        }
+        if (utype == V_ASN1_UNIVERSALSTRING && (len & 3)) {
+            ASN1err(ASN1_F_ASN1_EX_C2I,
+                    ASN1_R_UNIVERSALSTRING_IS_WRONG_LENGTH);
+            goto err;
+        }
+        /* All based on ASN1_STRING and handled the same */
+        if (!*pval) {
+            stmp = ASN1_STRING_type_new(utype);
+            if (!stmp) {
+                ASN1err(ASN1_F_ASN1_EX_C2I, ERR_R_MALLOC_FAILURE);
+                goto err;
+            }
+            *pval = (ASN1_VALUE *)stmp;
+        } else {
+            stmp = (ASN1_STRING *)*pval;
+            stmp->type = utype;
+        }
+        /* If we've already allocated a buffer use it */
+        if (*free_cont) {
+            if (stmp->data)
+                OPENSSL_free(stmp->data);
+            stmp->data = (unsigned char *)cont; /* UGLY CAST! RL */
+            stmp->length = len;
+            *free_cont = 0;
+        } else {
+            if (!ASN1_STRING_set(stmp, cont, len)) {
+                ASN1err(ASN1_F_ASN1_EX_C2I, ERR_R_MALLOC_FAILURE);
+                ASN1_STRING_free(stmp);
+                *pval = NULL;
+                goto err;
+            }
+        }
+        break;
+    }
+    /* If ASN1_ANY and NULL type fix up value */
+    if (typ && (utype == V_ASN1_NULL))
+        typ->value.ptr = NULL;
+
+    ret = 1;
+ err:
+    if (!ret) {
+        ASN1_TYPE_free(typ);
+        if (opval)
+            *opval = NULL;
+    }
+    return ret;
+}
+
+#define ASN1_ITEM_start(X509)   \
+    const ASN1_ITEM *X509_it()  \
+    {
+        static const ASN1_ITEM local_it =
+#define ASN1_ITEM_end(X509)     \
+        return &local_it;       \
+    }
+

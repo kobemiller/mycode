@@ -1,0 +1,67 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 145104 (0x236d0)
+    Signature Algorithm: sha1WithRSAEncryption
+        Issuer: C=US, O=GeoTrust Inc., CN=GeoTrust Global CA
+        Validity
+            Not Before: Feb 19 22:39:26 2010 GMT
+            Not After : Feb 18 22:39:26 2020 GMT
+        Subject: C=US, O=GeoTrust, Inc., CN=GeoTrust SSL CA
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:90:b3:80:c1:e4:e5:46:ad:70:60:3d:ba:e5:14:
+                    dd:9e:8a:5e:8b:75:5a:e6:ca:6d:41:a5:23:e8:39:
+                    85:26:7a:a7:55:77:9a:48:a1:92:7e:3a:1e:1a:f1:
+                    27:ab:a3:4c:39:cc:cb:3d:47:af:81:ae:16:6a:5c:
+                    37:ef:45:41:fd:fb:9a:97:3c:a0:43:9d:c6:df:17:
+                    21:d1:8a:a2:56:c2:03:49:84:12:81:3e:c9:0a:54:
+                    60:66:b9:8c:54:e4:f9:e6:f9:94:f1:e0:5f:75:11:
+                    f2:29:b9:e4:86:a2:b1:89:ad:a6:1e:83:29:63:b2:
+                    f0:54:1c:85:0b:7a:e7:e1:2e:0d:af:a4:bd:cd:e7:
+                    b1:5a:d7:8c:05:5a:0e:4b:73:28:8b:75:5d:34:d8:
+                    77:0b:e1:74:62:e2:71:30:62:d8:bc:8a:05:e5:31:
+                    63:4a:54:89:6a:33:78:a7:4e:55:24:1d:97:ef:1a:
+                    e4:12:c6:0f:30:18:b4:34:4d:e1:d8:23:3b:21:5b:
+                    2d:30:19:25:0e:74:f7:a4:21:4b:a0:a4:20:c9:6c:
+                    cd:98:56:c0:f2:a8:5f:3e:26:75:a0:0d:f8:36:88:
+                    8a:2c:5a:7d:67:30:a9:0f:d1:99:70:2e:78:e1:51:
+                    26:af:55:7a:24:be:8c:39:0d:77:9d:de:02:c3:0c:
+                    bd:1f
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+            X509v3 Subject Key Identifier: 
+                42:79:54:1B:61:CD:55:2B:3E:63:D5:3C:48:57:F5:9F:FB:45:CE:4A
+            X509v3 Authority Key Identifier: 
+                keyid:C0:7A:98:68:8D:89:FB:AB:05:64:0C:11:7D:AA:7D:65:B8:CA:CC:4E
+
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:0
+            X509v3 CRL Distribution Points: 
+
+                Full Name:
+                  URI:http://crl.geotrust.com/crls/gtglobal.crl
+
+            Authority Information Access: 
+                OCSP - URI:http://ocsp.geotrust.com
+
+    Signature Algorithm: sha1WithRSAEncryption
+         d4:ef:53:84:e8:1a:bd:a1:8b:04:c0:a9:f5:5f:a1:10:78:45:
+         5d:b2:57:6a:4e:24:cb:65:4e:31:97:91:9a:d4:24:f8:e2:27:
+         66:70:31:9c:c1:62:54:06:e7:97:1d:3a:9a:c0:a4:29:48:0a:
+         af:24:c7:a8:c4:9a:54:c1:7c:4c:78:4c:2b:68:2c:5d:17:a6:
+         54:78:4c:46:e2:80:c3:1f:38:71:12:d2:d7:53:e3:54:85:50:
+         b8:02:cb:ee:63:3a:f8:56:89:4d:55:bb:2e:c0:c8:18:77:86:
+         31:0b:0b:70:f0:7e:35:83:a4:2a:13:64:56:67:34:5d:16:5f:
+         73:ac:7b:06:24:da:4f:50:6d:2a:ab:d0:4d:53:41:c2:8e:bb:
+         71:03:49:29:86:18:cf:21:42:4c:74:62:51:15:c5:6f:a8:ef:
+         c4:27:e5:1b:33:dd:5a:88:d7:7f:12:d1:a7:61:25:1f:d5:e0:
+         dc:1d:cf:1a:10:d8:a0:cb:5f:8c:fa:0c:e5:bf:71:ff:e5:5d:
+         44:1d:a6:3e:87:47:fa:1a:4e:83:83:12:3f:88:66:95:98:79:
+         9a:85:eb:02:47:cd:25:e3:f2:06:04:4e:99:ca:5c:a0:6e:7a:
+         bb:dd:a3:90:1a:45:33:ef:bf:3e:d2:04:c4:b6:e0:2a:85:65:
+         41:3e:10:d4
