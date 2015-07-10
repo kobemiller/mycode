@@ -1,3 +1,10 @@
-a.out: basic.o
-basic.o:
-	g++ -g basic.cpp
+SRCS 	= $(wildcard *.cpp)
+TARGET 	= $(patsubst %.cpp, %, $(SRCS))
+
+all: $(TARGET)
+
+.cpp:
+	g++ -g $< -o $@
+
+clean:
+	-rm $(TARGET)
