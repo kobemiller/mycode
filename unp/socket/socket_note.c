@@ -374,3 +374,173 @@ int sockfd_to_family(int sockfd)
     return (ss.sin_family);
 }
 
+/*
+ * TIME_WAIT状态
+ * 1、可靠的实现TCP全双工连接的终止
+ * 2、允许老的重复分节在网络中消逝
+ */
+
+typedef void sigfunc(int);
+//void (*signal(int signo, void (*func)(int))) (int);
+sigfunc *signal(int signo, sigfunc *func);
+
+sigfunc *signal(int signo, sigfunc *func)
+{
+    struct sigaction act, oact;
+
+    act.sa_handler = func;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+
+    if ( signo == SIGALRM )
+    {
+#ifdef SA_INTERRUPT
+        act.sa_flags |= SA_INTERRUPT;
+#endif
+    }
+    else
+    {
+#ifdef SA_RESTART
+        act.sa_flags |= SA_RESTART;
+#endif
+    }
+
+    if ( sigaction(signo, &act, &oact) < 0 )
+        return (SIG_ERR);
+    return (oact.sa_handler);
+}
+/*
+ * 1、信号处理函数在被调用时其他信号被阻塞
+ * 2、unix默认信号是不排队的
+ *
+ */
+
+void sig_chld(int signo)
+{
+    pid_t   pid;
+    int     stat;
+
+    pid = wait(&stat);
+    /*
+     * 在信号处理函数中调用printf这样的标准IO函数是不合适的，
+     * 可重入问题
+     */
+    printf("child %d terminated\n", pid);
+
+    return;
+}
+
+#include <sys/wait.h>
+pid_t wait(int *statloc);
+pid_t waitpid(pid_t pid, int *statloc, int options);
+/*
+ * wait和waitpid返回两个值：已终止子进程的pid和statloc指针返回的子进程终止状态（一个整数）
+ * options参数允许我们指定附加选项，最常用的是WNOHANG：告知内核在没有已终止子进程时不要阻塞
+ */
+
+/*
+ * tcpcli04.c
+ */
+int main(int argc, char **argv)
+{
+    int i, sockfd[5];
+    struct sockaddr_in servaddr;
+
+    if ( argc != 2 )
+        err_quit("usage: tcpcli <IPaddress>");
+    for ( i = 0; i < 5; i++ )
+    {
+        sockfd[i] = socket(AF_INET, SOCK_STREAM, 0);
+
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_port = htons(SERV_PORT);
+        inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
+
+        connect(sockfd[i], (SA*)&servaddr, sizeof(servaddr));
+    }
+
+    str_cli(stdin, sockfd[0]);
+
+    return 0;
+}
+
+/*
+ * 调用waitpid的sig_chld
+ */
+void sig_chld(int signo)
+{
+    pid_t   pid;
+    int     stat;
+
+    while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0 )
+        printf("child %d terminated\n", pid);
+
+    return;
+}
+
+/*
+ * tcpserv04.c
+ */
+int main(int argc, char **argv)
+{
+    int     listenfd, connfd;
+    pid_t   childpid;
+    socklen_t clilen;
+    struct sockaddr_in cliaddr, servaddr;
+    void sig_chld(int);
+
+    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(SERV_PORT);
+
+    bind(listenfd, (SA*)&servaddr, sizeof(servaddr));
+
+    listen(listenfd, LISTENQ);
+
+    signal(SIGCHLD, sig_chld);
+
+    for ( ; ; )
+    {
+        clilen = sizeof(cliaddr);
+        if ( (connfd = accept(listen, (SA*)&cliaddr, &clilen)) < 0 )
+            if ( errno == EINTR )
+                continue;
+            else
+                err_sys("accept error");
+        if ( (childpid = fork()) == 0 )
+        {
+            close(listenfd);
+            str_echo(connfd);
+            exit(0);
+        }
+        close(connfd);
+    }
+
+    return 0;
+}
+
+/*
+ * 调用writen两次：第一次把文本行数据的第一个字节写入套接字
+ * 第二次把同一文本行中剩余字节写入套接字。
+ * 目的是让第一次writen引发一个RST，再让第二个writen产生SIGPIPE
+ */
+void str_cli(FILE *fp, int sockfd)
+{
+    char sendline[MAXLINE], recvline[MAXLINE];
+
+    while ( fgets(sendline, MAXLINE, fp) != NULL )
+    {
+        writen(sockfd, sendline, 1);
+        sleep(1);
+        writen(sockfd, sendline + 1, strlen(sendline) - 1);
+
+        if ( readline(sockfd, recvline, MAXLINE) == 0 )
+            err_quit("str_cli: server terminated prematurely");
+        fputs(recvline, stdout);
+    }
+}
+

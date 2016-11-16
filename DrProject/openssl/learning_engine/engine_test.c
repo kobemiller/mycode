@@ -592,7 +592,7 @@ int main()
 
     //engine摘要
     EVP_MD_CTX_init(&mctx);
-    md = EVP_sha1();
+    md = EVP_hw_md();
 
     ret = EVP_DigestInit_ex(&mctx, md, e);
     if ( ret != 1 )

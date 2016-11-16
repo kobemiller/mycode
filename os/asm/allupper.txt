@@ -1,0 +1,54 @@
+SECTION .BSS
+    BUFFLEN EQU 1024            ;缓冲区的长度
+    BUFF: RESB BUFFLEN          ;缓冲区文本本身
+SECTION .DATA
+
+SECTION .TEXT
+    GLOBAL _START
+
+_START:
+    NOP
+
+    ;从标准输入读入满满一缓冲区文本
+    READ:
+        MOV EAX, 3              ;指定SYS_READ 调用
+        MOV EBX, 0
+        MOV ECX, BUFF
+        MOV EDX, BUFFLEN
+        INT 80H
+        MOV ESI, EAX
+        CMP EAX, 0
+        JE DONE
+
+    ;设置寄存器，用于处理缓冲区这个步骤
+        MOV ECX, ESI
+        MOV EBP, BUFF
+        DEC EBP
+
+    ;详细检查缓冲区，并将小写字符转换成大写
+    SCAN:
+        CMP BYTE [EBP + ECX], 61H
+        JB NEXT
+        CMP BYTE [EBP + ECX], 7AH
+        JA NEXT
+
+    ;此时，我们拥有了一个小写字符
+        SUB BYTE [EBP + ECX], 20H
+
+    NEXT:
+        DEC ECX
+        JNZ SCAN
+
+    ;将满满一缓冲区处理过的文本写出到标准输出
+    WRITE:
+        MOV EAX, 4
+        MOV EBX, 1
+        MOV ECX, BUFF
+        MOV EDX, ESI
+        INT 80H
+        JMP READ
+
+    DONE:
+        MOV EAX, 1
+        MOV EBX, 0
+        INT 80H
