@@ -5,7 +5,7 @@ SECTION .bss
     Buff resb BUFFLEN
 
 SECTION .data
-    Dumplin: db "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00", 10
+    Dumplin: db "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
     DUMPLEN equ $-Dumplin
     ASClin: db "|................|", 10
     ASCLEN equ $-ASClin
@@ -74,7 +74,7 @@ Printline:
     pushad
     mov eax, 4
     mov ebx, 1
-    mov ecx, Dumplin
+    mov ecx, Dumpchar
     mov edx, FULLLEN
     int 80h
     popad
@@ -90,33 +90,19 @@ Loadbuff:
     mov ecx, Buff
     mov edx, BUFFLEN
     int 80h
-    mov ebp, eax        ;保存从文件中读入的字节数
+    mov ebp, eax
     xor ecx, ecx
     pop edx
     pop ebx
     pop eax
     ret
 
-Newlines:
-    pushad
-    cmp edx, 15
-    ja .exit
-    mov ecx, EOLs
-    mov eax, 4
-    mov ebx, 1
-    int 80h
-.exit:
-    popad 
-    ret
-
-EOLs db 10,10
-
 global _start
 _start:
     nop
     nop
 
-    xor esi, esi        ;将整个字节计数器清零
+    xor esi, esi
     call Loadbuff
     cmp ebp, 0
     jbe Exit
@@ -145,7 +131,6 @@ Scan:
 
 Done:
     call Printline
-    call Newlines
 
 Exit:
     mov eax, 1

@@ -136,6 +136,48 @@ int yin_yong_storage()
     return 0;
 }
 
+int test_yin_yong()
+{
+    struct SV
+    {
+        int x;
+        int y;
+        int z;
+    };
+
+    struct SR
+    {
+        int& x;
+        int& y;
+        int& z;
+    };
+
+    SV sv = {1, 2, 3};
+    SR sr = {sv.x, sv.y, sv.z};
+
+    std::cout << "&sv = " << &sv << std::endl;
+    std::cout << "&sv.x = " << &sv.x << std::endl;
+    std::cout << "&sv.y = " << &sv.y << std::endl;
+    std::cout << "&sv.z = " << &sv.z << std::endl;
+
+    std::cout << "&sr = " << &sr << std::endl;
+    std::cout << "&sr.x = " << &sr.x << std::endl;
+    std::cout << "&sr.y = " << &sr.y << std::endl;
+    std::cout << "&sr.z = " << &sr.z << std::endl;
+
+    SV& rsv = sv;
+
+    rsv.x = 4;
+    rsv.y = 5;
+    rsv.z = 6;
+
+    std::cout << "sv.x = " << sv.x << std::endl;
+    std::cout << "sv.y = " << sv.y << std::endl;
+    std::cout << "sv.z = " << sv.z << std::endl;
+
+    return 0;
+}
+
 int main()
 {
     bool_test();
@@ -143,6 +185,7 @@ int main()
     quote();
     test_return();
     yin_yong_storage();
+    test_yin_yong();
 
     return 0;
 }
