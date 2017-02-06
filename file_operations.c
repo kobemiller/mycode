@@ -1,3 +1,6 @@
+/*
+ * 修改为从配置文件读取
+ */
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -27,19 +30,17 @@ int verify_so()
 
 	unsigned char hash_rnt[32], hash_sm234[32];
 	unsigned char origin_hash_rnt[32], origin_hash_sm234[32];
-	/*
-	 * 获取libgmtrnt.so和liblfh234.so文件的长度
-	 */
-	len_rnt = get_file_size("./libgmtrnt.so");
+
+		len_rnt = get_file_size("./kobe.so");
 	if (len_rnt < 0)
 	{
-		printf("gmtrnt file error!\n");
+		printf("kobe file error!\n");
 		return -1;
 	}
-	len_sm234 = get_file_size("./liblfh234.so");
+	len_sm234 = get_file_size("./miller.so");
 	if (len_sm234 < 0)
 	{
-		printf("lfh234 file error!\n");
+		printf("miller234 file error!\n");
 		return -1;
 	}
 
@@ -62,15 +63,15 @@ int verify_so()
 	/*
 	 * 打开动态库文件
 	 */
-	fd_rnt = open("./libgmtrnt.so", O_RDONLY);
+	fd_rnt = open("./kobe.so", O_RDONLY);
 	if (fd_rnt <= 0)
 	{
-		printf("gmtrnt file open error!\n");
+		printf("kobe file open error!\n");
 		return -1;
 	}
-	fd_sm234 = open("./liblfh234.so", O_RDONLY);
+	fd_sm234 = open("miller.so", O_RDONLY);
 	{
-		printf("lfh234 file open error!\n");
+		printf("miller file open error!\n");
 		return -1;
 	}
 
@@ -109,12 +110,12 @@ int verify_so()
 	 */
 	if ((read(fd_rnt, p_rnt, len_rnt)) == -1)
 	{
-		printf("read gmtrnt error!\n");
+		printf("read kobe error!\n");
 		return -1;
 	}
 	if ((read(fd_sm234, p_sm234, len_sm234)) == -1)
 	{
-		printf("read lfh234 error!\n");
+		printf("read miller error!\n");
 		return -1;
 	}
 
