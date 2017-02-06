@@ -48,9 +48,9 @@ static void outputError(Boolean useErr, int err, Boolean flushStdout,
         snprintf(errText, BUF_SIZE, "[%s %s]",
                 (err < 0 && err <= MAX_ENAME) ? ename[err] : "?UNKOWN?", strerror(err));
     else
-        snprintf(buf, BUF_SIZE, "ERROR %s\n", errText, userMsg);
+        snprintf(buf, BUF_SIZE, "ERROR%s %s\n", errText, userMsg);
 
-    if ( iflushStdout )
+    if ( flushStdout )
     {
         fflush(stdout);
     }
@@ -133,7 +133,7 @@ void usageErr(const char *format, ...)
     exit(EXIT_FAILURE);
 }
 
-void cmdLineErr(const char *format)
+void cmdLineErr(const char *format, ...)
 {
     va_list arglist;
 
