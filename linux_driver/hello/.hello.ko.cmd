@@ -1,0 +1,1 @@
+cmd_/home/parallels/mycode/linux_driver/hello/hello.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/parallels/mycode/linux_driver/hello/hello.ko /home/parallels/mycode/linux_driver/hello/hello.o /home/parallels/mycode/linux_driver/hello/hello.mod.o
