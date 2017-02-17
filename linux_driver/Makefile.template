@@ -1,0 +1,13 @@
+KERNELDIR =/usr/src/kernels/*** 	#指向内核代码目录
+PWD := $(shell pwd)
+
+all:
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules 	#编译内核模块
+
+clean:
+	rm -rf modules.* *.o *~ core .depend .*.cmd *.ko
+	rm -rf *.mod.c .tmp_versions Modules*
+
+.PHONY: modules modules_install clean
+
+obj-m := ***.o 	#要编译的模块名称
