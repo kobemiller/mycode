@@ -164,3 +164,57 @@ struct file_operations scull_wusr_fops =
     .open       = scull_w_open,
     .release    = scull_w_release,
 };
+
+static struct scull_adev_info
+{
+    char *name;
+    struct scull_dev *sculldev;
+    struct file_operations *fops;
+} scull_access_devs[] = 
+{
+    { "scullsingle", &scull_s_device, &scull_sngl_fops },
+    { "sculluid", &scull_u_device, &scull_user_fops },
+    { "scullwuid", &scull_w_device, &scull_wusr_fops },
+    { "scullpriv", &scull_c_device, &scull_priv_fops }
+};
+
+#define SCULL_N_ADEVS   4
+
+static void scull_access_setup(dev_t devno, struct scull_adev_info *devinfo)
+{
+    struct scull_dev *dev = devinfo->sculldev;
+    int err;
+
+    dev->quantum = scull_quantum;
+    dev->qset = scull_qset;
+    init_MUTEX(&dev->sem);
+
+    cdev_init(&dev->cdev, devinfo->fops);
+    kobject_set_name(&dev->cdev.kobj, devinfo->name);
+    dev->cdev.owner = THIS_MODULE;
+    err = cdev_add(&dev->cdev, devno, 1);
+    if (err)
+    {
+        printk(KERN_NOTICE "Error %d adding %s\n", err, devinfo->name);
+        kobject_put(&dev->cdev.kobj);
+    }
+    else
+        printk(KERN_NOTICE "%s registered at %x\n", devinfo->name, devno);
+}
+
+int scull_access_init(dev_t firstdev)
+{
+    int result, i;
+
+    result = register_chrdev_region(firstdev, SCULL_N_ADEVS, "sculla");
+    if (result < 0)
+    {
+        printk(KERN_WARNING "sculla: device number registration failed\n");
+        return 0;
+    }
+    scull_a_firstdev = firstdev;
+
+    for (i = 0; i < SCULL_N_ADEVS; i++)
+        scull_access_setup(firstdev + i, scull_access_devs + i);
+    return SCULL_N_ADEVS;
+}
